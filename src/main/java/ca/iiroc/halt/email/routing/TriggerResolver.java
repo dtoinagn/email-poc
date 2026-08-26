@@ -66,9 +66,10 @@ public class TriggerResolver {
      * send. Flagged in the design doc §03/§10 as an assumption to confirm against the producer.
      */
     private boolean isFirstResumption(HaltMessage message) {
-        String created = message.getCreatedTime();
-        String modified = message.getLastModifiedTime();
-        return modified == null || modified.isBlank() || modified.equals(created);
+        String lastModifiedTime = message.getLastModifiedTime();
+        return lastModifiedTime == null
+                || lastModifiedTime.isBlank()
+                || lastModifiedTime.equals(message.getCreatedTime());
     }
 
     private Optional<EmailTrigger> onlyIf(boolean gateReached, EmailTrigger trigger) {

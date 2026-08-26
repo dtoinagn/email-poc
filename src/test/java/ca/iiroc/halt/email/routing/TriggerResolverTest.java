@@ -113,6 +113,7 @@ class TriggerResolverTest {
                 .subState(subState)
                 .createdTime(createdTime)
                 .lastModifiedTime(lastModifiedTime)
+                .action("ModifyScheduledResumption")
                 .build();
         return resolver.resolve(message);
     }
