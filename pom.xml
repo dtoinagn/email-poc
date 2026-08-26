@@ -1,0 +1,299 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>ca.iiroc.sscb</groupId>
+    <artifactId>halt-svc-email</artifactId>
+    <name>Halt Email Service</name>
+    <version>${revision}-${release}</version>
+
+    <repositories>
+        <repository>
+            <id>maven-stg</id>
+            <url>https://nexus.iiroc.ca/repository/maven-stg/</url>
+        </repository>
+
+        <repository>
+            <id>central</id>
+            <url>https://repo.maven.apache.org/maven2/</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+
+    <properties>
+
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <revision>1.0.0</revision>
+        <release>dev</release>
+        <spring-boot.version>3.4.5</spring-boot.version>
+    </properties>
+
+    <!--
+        No spring-boot-starter-parent: this module keeps its own parent-less layout (RPM/assembly
+        deployment predates Spring Boot here). Importing the BOM gives the same managed, mutually
+        compatible dependency versions without adopting Boot's parent POM or its plugin defaults.
+    -->
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+
+        <!-- Spring Boot -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-thymeleaf</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+        </dependency>
+
+        <!-- In-memory idempotency guard — no database, see design doc §07/§10 -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-vfs2</artifactId>
+            <version>2.10.0</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.42</version>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>ca.ciro.halt</groupId>
+            <artifactId>halt-model-shared</artifactId>
+            <version>0.15.0-SNAPSHOT</version>
+        </dependency>
+
+        <!-- halt-model-shared was installed with a stub POM (install:install-file), so its own
+             dependencies below aren't pulled in transitively; declared explicitly to match the
+             versions it was actually built against (see its embedded META-INF/maven pom.xml). -->
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
+            <version>4.30.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
+            <version>1.6.2</version>
+        </dependency>
+
+        <!-- Test -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.icegreen</groupId>
+            <artifactId>greenmail</artifactId>
+            <version>2.1.0</version>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+
+        <finalName>${app.filename}</finalName>
+
+        <plugins>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.10.1</version>
+                <configuration>
+                    <source>21</source>
+                    <target>21</target>
+                </configuration>
+            </plugin>
+
+            <!-- Executable fat jar with correctly merged Spring metadata (spring.factories,
+                 META-INF/spring/*.imports across dependencies) — a plain jar-with-dependencies
+                 assembly silently drops all but the last copy of those files and breaks
+                 autoconfiguration. Repackages the main jar in place; the RPM mapping below points
+                 straight at it. -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>${spring-boot.version}</version>
+                <configuration>
+                    <mainClass>ca.iiroc.halt.email.EmailServiceApplication</mainClass>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!--  RPM PLUGIN  -->
+            <plugin>
+
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>rpm-maven-plugin</artifactId>
+                <version>2.2.0</version>
+
+                <executions>
+
+                    <execution>
+                        <id>generate-rpm</id>
+                        <goals>
+                            <goal>rpm</goal>
+                        </goals>
+
+                        <configuration>
+
+                            <group>Application_IIROC-STG</group>
+                            <name>${project.artifactId}</name>
+                            <version>${revision}</version>
+                            <release>${release}</release>
+                            <vendor>IIROC STG</vendor>
+
+
+                            <mappings>
+                                <!-- APPLICATION OPERATION LINUX BASH SCRIPT  -->
+
+                                <mapping>
+                                    <directory>${app.install.dir}/bin</directory>
+                                    <username>sroot</username>
+                                    <groupname>mpl</groupname>
+                                    <filemode>755</filemode>
+                                    <sources>
+                                        <source>
+                                            <location>${project.basedir}/apps/HaltGateway/haltGateway.sh</location>
+                                        </source>
+                                        <!-- <source>
+                                            <location>${project.basedir}/apps/HaltGateway/logback.xml</location>
+                                        </source>
+                                        <source>
+                                            <location>${project.basedir}/apps/HaltGateway/config.xml</location>
+                                        </source> -->
+                                    </sources>
+
+                                </mapping>
+
+                                <mapping>
+                                    <directory>${app.root.dir}/license</directory>
+                                    <username>sroot</username>
+                                    <groupname>mpl</groupname>
+                                    <filemode>755</filemode>
+                                    <sources>
+                                        <source>
+                                            <location>${project.basedir}/license/camerontec_license.xml</location>
+                                        </source>
+                                    </sources>
+                                </mapping>
+
+                                <mapping>
+                                    <directory>${app.install.dir}/resources</directory>
+                                    <username>sroot</username>
+                                    <groupname>mpl</groupname>
+                                    <filemode>755</filemode>
+                                    <sources>
+                                        <source>
+                                            <location>${project.basedir}/resources</location>
+                                        </source>
+                                    </sources>
+                                    <!-- Include all market config directory recursively  -->
+                                    <recurseDirectories>true</recurseDirectories>
+                                    <directoryIncluded>true</directoryIncluded>
+                                </mapping>
+
+                                <!-- FULL JAR FILE (spring-boot-maven-plugin repackages this in place) -->
+                                <mapping>
+                                    <directory>${app.install.dir}/lib</directory>
+                                    <username>sroot</username>
+                                    <groupname>mpl</groupname>
+                                    <sources>
+                                        <source>
+                                            <location>${project.build.directory}/${app.filename}.jar</location>
+                                            <destination>${project.artifactId}.jar</destination>
+                                        </source>
+                                    </sources>
+                                </mapping>
+
+                            </mappings>
+
+                            <preinstallScriptlet>
+                                <scriptFile>${project.basedir}/scripts/installation/pre_install.sh</scriptFile>
+                                <fileEncoding>utf-8</fileEncoding>
+                                <filter>true</filter>
+                            </preinstallScriptlet>
+                            <postinstallScriptlet>
+                                <scriptFile>${project.basedir}/scripts/installation/post_install.sh</scriptFile>
+                                <fileEncoding>utf-8</fileEncoding>
+                                <filter>true</filter>
+                            </postinstallScriptlet>
+                            <preremoveScriptlet>
+                                <scriptFile>${project.basedir}/scripts/installation/pre_uninstall.sh</scriptFile>
+                                <fileEncoding>utf-8</fileEncoding>
+                                <filter>true</filter>
+                            </preremoveScriptlet>
+                            <postremoveScriptlet>
+                                <scriptFile>${project.basedir}/scripts/installation/post_uninstall.sh</scriptFile>
+                                <fileEncoding>utf-8</fileEncoding>
+                                <filter>true</filter>
+                            </postremoveScriptlet>
+
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+        </plugins>
+    </build>
+</project>

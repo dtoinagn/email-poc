@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<!-- Trigger: Scheduled Resumption Time Updated. Requirements doc page 15. Subject/heading French TBD;
+     intro sentence is final ("Trading resumes in..."), matching the resumption template. -->
+<html xmlns:th="http://www.thymeleaf.org">
+<body style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#111111;">
+<p th:text="${heading}">Canadian Investment Regulatory Organization Trade Resumption Time Update</p>
+<p><span th:text="${city}">Toronto</span>, <span th:text="${currentDate}">2026-01-01</span> - Trading resumes
+    in / Reprise des négociations pour :</p>
+<table cellpadding="4" cellspacing="0" border="1" style="border-collapse:collapse;">
+    <tr><td>Company / Société :</td><td th:text="${issueName}">Issue Name</td></tr>
+    <tr><td th:text="${symbolLabel}">TSX Symbol / Symbole TSX</td><td th:text="${symbol}">SYM</td></tr>
+    <tr><td>All Issues / Tous les Titres:</td><td th:text="${allIssue}">No/Non</td></tr>
+    <tr><td th:text="${resumptionTimeLabel}">Resumption Time (ET)</td><td th:text="${resumptionTime}">10:00:00 AM</td></tr>
+</table>
+<div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

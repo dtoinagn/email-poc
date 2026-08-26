@@ -1,0 +1,71 @@
+spring:
+  application:
+    name: halt-svc-email
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: halt-svc-email
+
+  mail:
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:25}
+    properties:
+      mail:
+        smtp:
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+
+  thymeleaf:
+    prefix: classpath:/templates/
+    suffix: .html
+    cache: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
+# --- email-service: everything the design doc keeps out of Kafka/HaltMessage lives here ---
+# See halt-email-service-design.md §05 (Recipients & from-address) and §04 (Field mapping).
+email-service:
+
+  kafka:
+    topic: halt.lifecycle
+
+  mail:
+    from: ${HALT_EMAIL_FROM:halts@ciro.ca}
+
+  # Fixed per the requirements doc — a redeploy to change one of these four is an accepted cost.
+  marketplaces:
+    TSE: # TSX
+      to: "surveillance@ciro.ca"
+      bcc: "halts@iiroc.ca"
+      city: "Toronto"
+      symbol-label: "TSX Symbol / Symbole TSX"
+    CSX: # TSX Venture
+      to: "surveillancewest@ciro.ca"
+      bcc: "haltswest@iiroc.ca"
+      city: "Vancouver"
+      symbol-label: "TSX-Venture Symbol / Symbole à la Bourse de croissance TSX"
+    AQL: # Cboe Canada
+      to: "surveillance@ciro.ca"
+      bcc: "aqnhalts@iiroc.ca"
+      city: "Toronto"
+      symbol-label: "Cboe Canada Symbol / Symbole à la Bourse de Cboe Canada"
+    CNQ: # CSE
+      to: "surveillancewest@ciro.ca"
+      bcc: "cnsxhalts@iiroc.ca"
+      city: "Vancouver"
+      symbol-label: "CSE Symbol / Symbole CSE"
+
+  # haltReasonCode -> French translation. HaltMessage carries no French reason text at all, so this is
+  # seeded empty; ReasonTranslator falls back to the English description until Communications supplies
+  # real entries here (see design doc §04, §10).
+  halt-reasons:
+    french: {}

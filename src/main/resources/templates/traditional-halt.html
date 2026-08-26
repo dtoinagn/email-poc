@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<!-- Trigger: Immediate Halt Created / Scheduled Halt Time Reached. Subject + body final per requirements
+     doc page 8 -- no French-TBD placeholders in this one. -->
+<html xmlns:th="http://www.thymeleaf.org">
+<body style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#111111;">
+<p th:text="${heading}">Canadian Investment Regulatory Organization Trading Halt</p>
+<p><span th:text="${city}">Toronto</span>, <span th:text="${currentDate}">2026-01-01</span> - The following
+    issues have been halted by CIRO / L’OCRI a suspendu la négociation des titres suivants :</p>
+<table cellpadding="4" cellspacing="0" border="1" style="border-collapse:collapse;">
+    <tr><td>Company / Société :</td><td th:text="${issueName}">Issue Name</td></tr>
+    <tr><td th:text="${symbolLabel}">TSX Symbol / Symbole TSX</td><td th:text="${symbol}">SYM</td></tr>
+    <tr><td>All Issues / Tous les Titres:</td><td th:text="${allIssue}">No/Non</td></tr>
+    <tr><td>Reason / Motif :</td><td th:text="${reasonEn} + ' / ' + ${reasonFr}">Reason</td></tr>
+    <tr><td>Halt Time (ET) / Heure de la suspension (HE) :</td><td th:text="${haltTime}">09:30:00 AM</td></tr>
+</table>
+<div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

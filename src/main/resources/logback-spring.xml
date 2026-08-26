@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!--
+        Dedicated failure record for HaltEventProcessor: no database, no dead letter topic (see design
+        doc, section 07/10, "no database trade-off"). This file is the record a duplicate/failed send
+        leaves behind, so it gets its own appender rather than mixing into general application logs.
+    -->
+    <appender name="HALT_EMAIL_ERRORS" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/halt-email-errors.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>logs/halt-email-errors.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>50MB</maxFileSize>
+            <maxHistory>90</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="HALT_EMAIL_ERRORS" level="ERROR" additivity="false">
+        <appender-ref ref="HALT_EMAIL_ERRORS"/>
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>
