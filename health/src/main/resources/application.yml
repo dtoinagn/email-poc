@@ -1,0 +1,36 @@
+spring:
+  application:
+    name: halt-health
+
+server:
+  port: 8080
+
+# The aggregator's own liveness, deliberately independent of the services it monitors: a monitored
+# service going down must not make an orchestrator restart this process.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+halt-health:
+  poll-interval: 5s
+  # Upper bound for one whole check of one service, enforced by HealthPoller.
+  timeout: 2s
+  # A result older than this counts as UNKNOWN. Must exceed poll-interval + timeout.
+  stale-after: 15s
+
+  # type defaults to actuator; critical defaults to true (a non-critical service reports DEGRADED rather
+  # than failing the probe). See README.md for what each type checks and its url format.
+  # Replace these with the real targets, e.g. in an external config/application.yml.
+  services:
+    # /readiness requires management.endpoint.health.probes.enabled=true on the monitored application.
+    - name: app-one
+      url: ${APP_ONE_HEALTH_URL:http://localhost:8081/actuator/health/readiness}
+    - name: app-two
+      url: ${APP_TWO_HEALTH_URL:http://localhost:8082/actuator/health/readiness}
+    # The web server's page, e.g. https://<server-ip>/login. Its certificate must be trusted by the JVM
+    # and must list the address used here. Hostnames can't contain underscores.
+    - name: web-server
+      type: http
+      url: ${WEB_SERVER_URL:https://localhost/login}
